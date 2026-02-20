@@ -1,0 +1,27 @@
+name: Karsa Jobs Backend CI
+on:
+  push:
+    branches: [ "karsajobs" ]
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+      # 1. Lint Dockerfile
+      - name: lint-dockerfile
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: Dockerfile
+      # 2. Test app
+      - name: test-app
+        run: go test -v -short --count=1 $(go list ./...)
+      # 3. Build & Push
+      - name: build-app-karsajobs
+        run: |
+          echo "${{ secrets.CR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker build -t ghcr.io/${{ github.actor }}/karsajobs:latest .
+          docker push ghcr.io/${{ github.actor }}/karsajobs:latest
